@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taiwan Street Eats 營利計算機 (精算版)</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto; background-color: #f4f4f9; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #666; font-size: 0.9em; margin-bottom: 20px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; color: #444; margin-bottom: 5px; }
+        input[type="number"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+        
+        .cost-section { background: #ffebee; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid #d32f2f; }
+        .cost-section h3 { margin-top: 0; margin-bottom: 15px; color: #b71c1c; font-size: 1.1em; border-bottom: 1px solid #ffcdd2; padding-bottom: 5px;}
+        .cost-group { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .cost-group label { margin-bottom: 0; color: #c62828; flex: 1;}
+        .cost-group input { width: 40%; border-color: #ef9a9a; font-weight: bold; color: #c62828; text-align: right;}
+        .total-cost-display { text-align: right; font-weight: bold; color: #b71c1c; margin-top: 10px; border-top: 1px solid #ffcdd2; padding-top: 10px;}
+
+        .sales-section { margin-top: 20px; }
+        .result-box { padding: 20px; background: #e3f2fd; border-radius: 8px; border-left: 5px solid #1976d2; margin-top: 20px;}
+        .result-box p { margin: 8px 0; font-size: 1.1em; display: flex; justify-content: space-between;}
+        .profit { font-size: 1.4em !important; font-weight: bold; color: #d32f2f; margin-top: 15px !important; border-top: 2px solid #90caf9; padding-top: 15px;}
+        .profit.positive { color: #2e7d32; }
+        
+        .stock-box { margin-top: 20px; padding: 15px; background: #fff3e0; border-radius: 8px; border-left: 5px solid #ff9800; font-size: 0.95em; }
+        .warning { color: #d32f2f; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Taiwan Street Eats</h2>
+    <div class="subtitle">現場營利與庫存計算機</div>
+
+    <!-- 成本拆解區塊 -->
+    <div class="cost-section">
+        <h3>💰 營運成本設定 (美金)</h3>
+        
+        <div class="cost-group">
+            <label>🎪 場地與行政費：</label>
+            <input type="number" id="cost-venue" value="200.00" min="0" step="0.01" oninput="calculate()">
+        </div>
+        
+        <div class="cost-group">
+            <label>🥩 食材採購費：</label>
+            <input type="number" id="cost-ingredients" value="542.45" min="0" step="0.01" oninput="calculate()">
+        </div>
+        
+        <div class="cost-group">
+            <label>🧻 器具與耗材費：</label>
+            <input type="number" id="cost-supplies" value="100.00" min="0" step="0.01" oninput="calculate()">
+        </div>
+        
+        <div class="total-cost-display">
+            目前總成本：$<span id="total-cost-sum">842.45</span>
+        </div>
+    </div>
+
+    <!-- 銷售區塊 -->
+    <div class="sales-section">
+        <div class="input-group">
+            <label>👑 Combo 綜合三拼 ($15) 售出數量：</label>
+            <input type="number" id="combo" value="0" min="0" oninput="calculate()">
+        </div>
+
+        <div class="input-group">
+            <label>🍠 地瓜薯條單點 ($6) 售出數量：</label>
+            <input type="number" id="fries" value="0" min="0" oninput="calculate()">
+        </div>
+
+        <div class="input-group">
+            <label>🦑 花枝丸單點 ($7) 售出數量：</label>
+            <input type="number" id="cuttlefish" value="0" min="0" oninput="calculate()">
+        </div>
+
+        <div class="input-group">
+            <label>🩸 豬血糕單點 ($7) 售出數量：</label>
+            <input type="number" id="pigblood" value="0" min="0" oninput="calculate()">
+        </div>
+    </div>
+
+    <div class="result-box">
+        <p><span>總營收 (Revenue)：</span><span>$<span id="revenue">0.00</span></span></p>
+        <p><span>總成本 (Total Cost)：</span><span>-$<span id="display-total-cost">842.45</span></span></p>
+        <p class="profit" id="profit-display"><span>總營利 (Net Profit)：</span><span>$<span id="profit">-842.45</span></span></p>
+    </div>
+
+    <div class="stock-box">
+        <strong>📦 即時庫存預估 (剩餘份數)：</strong><br><br>
+        🍠 薯條：<span id="rem-fries">100.0</span> / 100<br>
+        🦑 花枝丸：<span id="rem-cuttlefish">100.0</span> / 100<br>
+        🩸 豬血糕：<span id="rem-pigblood">100.0</span> / 100<br>
+        <div id="warning-msg" style="margin-top: 10px;"></div>
+    </div>
+</div>
+
+<script>
+    // 初始設定
+    const STOCK_LIMIT = 100;
+
+    function calculate() {
+        // 取得使用者填寫的各項成本
+        let costVenue = Number(document.getElementById('cost-venue').value) || 0;
+        let costIngredients = Number(document.getElementById('cost-ingredients').value) || 0;
+        let costSupplies = Number(document.getElementById('cost-supplies').value) || 0;
+        
+        // 計算總成本
+        let totalCost = costVenue + costIngredients + costSupplies;
+        document.getElementById('total-cost-sum').innerText = totalCost.toFixed(2);
+        document.getElementById('display-total-cost').innerText = totalCost.toFixed(2);
+
+        // 取得銷量
+        let combo = Number(document.getElementById('combo').value) || 0;
+        let fries = Number(document.getElementById('fries').value) || 0;
+        let cuttlefish = Number(document.getElementById('cuttlefish').value) || 0;
+        let pigblood = Number(document.getElementById('pigblood').value) || 0;
+
+        // 計算財務
+        let revenue = (combo * 15) + (fries * 6) + (cuttlefish * 7) + (pigblood * 7);
+        let profit = revenue - totalCost;
+
+        // 更新畫面上的金額
+        document.getElementById('revenue').innerText = revenue.toFixed(2);
+        document.getElementById('profit').innerText = profit.toFixed(2);
+        
+        let profitDisplay = document.getElementById('profit-display');
+        if (profit >= 0) {
+            profitDisplay.classList.add('positive'); // 賺錢變綠色
+        } else {
+            profitDisplay.classList.remove('positive'); // 虧損為紅色
+        }
+
+        // 計算庫存消耗
+        let used_fries = fries + (combo * 0.5);
+        let used_cuttlefish = cuttlefish + (combo * (1/3));
+        let used_pigblood = pigblood + (combo * 0.5);
+
+        let rem_fries = STOCK_LIMIT - used_fries;
+        let rem_cuttlefish = STOCK_LIMIT - used_cuttlefish;
+        let rem_pigblood = STOCK_LIMIT - used_pigblood;
+
+        // 更新畫面上的庫存
+        document.getElementById('rem-fries').innerText = rem_fries.toFixed(1);
+        document.getElementById('rem-cuttlefish').innerText = rem_cuttlefish.toFixed(1);
+        document.getElementById('rem-pigblood').innerText = rem_pigblood.toFixed(1);
+
+        // 庫存警告設定
+        let warnings = [];
+        if (rem_fries < 0) warnings.push("<span class='warning'>⚠️ 薯條庫存已見底 (可能超賣)！</span>");
+        if (rem_cuttlefish < 0) warnings.push("<span class='warning'>⚠️ 花枝丸庫存已見底 (可能超賣)！</span>");
+        if (rem_pigblood < 0) warnings.push("<span class='warning'>⚠️ 豬血糕庫存已見底 (可能超賣)！</span>");
+        
+        document.getElementById('warning-msg').innerHTML = warnings.join("<br>");
+    }
+
+    // 網頁開啟時先自動計算一次，讓預設值顯示出來
+    window.onload = calculate;
+</script>
+
+</body>
+</html>

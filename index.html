@@ -11,6 +11,7 @@
         .subtitle { text-align: center; color: #666; font-size: 0.9em; margin-bottom: 20px; }
         .input-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; color: #444; margin-bottom: 5px; }
+        .hint { display: block; font-size: 0.85em; color: #666; margin-bottom: 5px; }
         input[type="number"], input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
         
         .cost-section { background: #ffebee; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid #d32f2f; }
@@ -31,8 +32,9 @@
         .profit { font-size: 1.4em !important; font-weight: bold; color: #d32f2f; margin-top: 15px !important; border-top: 2px solid #90caf9; padding-top: 15px;}
         .profit.positive { color: #2e7d32; }
         
-        .stock-box { margin-top: 20px; padding: 15px; background: #fff3e0; border-radius: 8px; border-left: 5px solid #ff9800; font-size: 0.95em; }
+        .stock-box { margin-top: 20px; padding: 15px; background: #fff3e0; border-radius: 8px; border-left: 5px solid #ff9800; font-size: 0.95em; line-height: 1.6;}
         .warning { color: #d32f2f; font-weight: bold; }
+        .stock-val { font-weight: bold; color: #e65100; }
     </style>
 </head>
 <body>
@@ -60,7 +62,6 @@
             <input type="number" id="cost-supplies" value="100.00" min="0" step="0.01" oninput="calculate()">
         </div>
 
-        <!-- 新增：可自填名稱與金額的空白成本格 -->
         <div class="cost-group custom-cost">
             <input type="text" placeholder="➕ 自填項目 (如: 冰塊)">
             <input type="number" id="cost-custom1" value="0" min="0" step="0.01" oninput="calculate()">
@@ -79,22 +80,25 @@
     <div class="sales-section">
         <div class="input-group">
             <label>👑 Combo 綜合三拼 ($15) 售出數量：</label>
+            <span class="hint">(每份含: 薯條60g, 豬血糕5塊, 花枝丸2顆)</span>
             <input type="number" id="combo" value="0" min="0" oninput="calculate()">
         </div>
 
         <div class="input-group">
             <label>🍠 地瓜薯條單點 ($6) 售出數量：</label>
+            <span class="hint">(每份消耗: 150g)</span>
             <input type="number" id="fries" value="0" min="0" oninput="calculate()">
         </div>
 
-        <!-- 更新：花枝丸改為 4 顆 -->
         <div class="input-group">
-            <label>🦑 花枝丸單點 ($7 / 4顆) 售出數量：</label>
+            <label>🦑 花枝丸單點 ($7) 售出數量：</label>
+            <span class="hint">(每份消耗: 4顆)</span>
             <input type="number" id="cuttlefish" value="0" min="0" oninput="calculate()">
         </div>
 
         <div class="input-group">
             <label>🩸 豬血糕單點 ($7) 售出數量：</label>
+            <span class="hint">(每份消耗: 8塊)</span>
             <input type="number" id="pigblood" value="0" min="0" oninput="calculate()">
         </div>
     </div>
@@ -106,27 +110,28 @@
     </div>
 
     <div class="stock-box">
-        <strong>📦 即時庫存預估 (剩餘份數)：</strong><br><br>
-        🍠 薯條：<span id="rem-fries">100.0</span> / 100<br>
-        🦑 花枝丸：<span id="rem-cuttlefish">100.0</span> / 100<br>
-        🩸 豬血糕：<span id="rem-pigblood">100.0</span> / 100<br>
+        <strong>📦 即時庫存預估 (依實際備料換算)：</strong><br>
+        🍠 薯條：剩餘 <span class="stock-val" id="rem-fries"></span><br>
+        🦑 花枝丸：剩餘 <span class="stock-val" id="rem-cuttlefish"></span><br>
+        🩸 豬血糕：剩餘 <span class="stock-val" id="rem-pigblood"></span><br>
         <div id="warning-msg" style="margin-top: 10px;"></div>
     </div>
 </div>
 
 <script>
-    // 初始設定庫存份數
-    const STOCK_LIMIT = 100;
+    // 根據最新盤點資料設定絕對庫存量
+    const STOCK_FRIES_G = Math.round(6.5 * 4 * 453.592); // 6.5包 x 4磅，換算約 11793 克
+    const STOCK_CUTTLEFISH_PCS = 30 * 11; // 30包 x 11顆 = 330 顆
+    const STOCK_PIGBLOOD_PCS = 25 * 32; // 25包 x 32塊 = 800 塊
 
     function calculate() {
-        // 取得使用者填寫的各項成本
+        // 計算總成本
         let costVenue = Number(document.getElementById('cost-venue').value) || 0;
         let costIngredients = Number(document.getElementById('cost-ingredients').value) || 0;
         let costSupplies = Number(document.getElementById('cost-supplies').value) || 0;
         let costCustom1 = Number(document.getElementById('cost-custom1').value) || 0;
         let costCustom2 = Number(document.getElementById('cost-custom2').value) || 0;
         
-        // 計算總成本 (包含自訂欄位)
         let totalCost = costVenue + costIngredients + costSupplies + costCustom1 + costCustom2;
         document.getElementById('total-cost-sum').innerText = totalCost.toFixed(2);
         document.getElementById('display-total-cost').innerText = totalCost.toFixed(2);
@@ -141,42 +146,45 @@
         let revenue = (combo * 15) + (fries * 6) + (cuttlefish * 7) + (pigblood * 7);
         let profit = revenue - totalCost;
 
-        // 更新畫面上的金額
+        // 更新營收與利潤顯示
         document.getElementById('revenue').innerText = revenue.toFixed(2);
         document.getElementById('profit').innerText = profit.toFixed(2);
         
         let profitDisplay = document.getElementById('profit-display');
         if (profit >= 0) {
-            profitDisplay.classList.add('positive'); // 賺錢變綠色
+            profitDisplay.classList.add('positive');
         } else {
-            profitDisplay.classList.remove('positive'); // 虧損為紅色
+            profitDisplay.classList.remove('positive');
         }
 
-        // 計算庫存消耗 
-        // 更新邏輯：單品花枝丸1份=4顆，Combo含1顆花枝丸，故消耗 1/4 = 0.25份
-        let used_fries = fries + (combo * 0.5);
-        let used_cuttlefish = cuttlefish + (combo * 0.25);
-        let used_pigblood = pigblood + (combo * 0.5);
+        // 計算庫存消耗 (絕對單位)
+        let used_fries = (fries * 150) + (combo * 60);
+        let used_cuttlefish = (cuttlefish * 4) + (combo * 2);
+        let used_pigblood = (pigblood * 8) + (combo * 5);
 
-        let rem_fries = STOCK_LIMIT - used_fries;
-        let rem_cuttlefish = STOCK_LIMIT - used_cuttlefish;
-        let rem_pigblood = STOCK_LIMIT - used_pigblood;
+        let rem_fries = STOCK_FRIES_G - used_fries;
+        let rem_cuttlefish = STOCK_CUTTLEFISH_PCS - used_cuttlefish;
+        let rem_pigblood = STOCK_PIGBLOOD_PCS - used_pigblood;
 
-        // 更新畫面上的庫存顯示
-        document.getElementById('rem-fries').innerText = rem_fries.toFixed(2);
-        document.getElementById('rem-cuttlefish').innerText = rem_cuttlefish.toFixed(2);
-        document.getElementById('rem-pigblood').innerText = rem_pigblood.toFixed(2);
+        // 更新畫面上的庫存顯示，並換算可做多少單點份數
+        let fries_portions = Math.floor(rem_fries / 150);
+        let cuttlefish_portions = Math.floor(rem_cuttlefish / 4);
+        let pigblood_portions = Math.floor(rem_pigblood / 8);
+
+        document.getElementById('rem-fries').innerText = rem_fries + " g (約可再做 " + fries_portions + " 份單點)";
+        document.getElementById('rem-cuttlefish').innerText = rem_cuttlefish + " 顆 (約可再做 " + cuttlefish_portions + " 份單點)";
+        document.getElementById('rem-pigblood').innerText = rem_pigblood + " 塊 (約可再做 " + pigblood_portions + " 份單點)";
 
         // 庫存警告設定
         let warnings = [];
-        if (rem_fries < 0) warnings.push("<span class='warning'>⚠️ 薯條庫存已見底 (可能超賣)！</span>");
+        if (rem_fries < 0) warnings.push("<span class='warning'>⚠️ 薯條庫存已見底 (可能超賣或克數超用)！</span>");
         if (rem_cuttlefish < 0) warnings.push("<span class='warning'>⚠️ 花枝丸庫存已見底 (可能超賣)！</span>");
         if (rem_pigblood < 0) warnings.push("<span class='warning'>⚠️ 豬血糕庫存已見底 (可能超賣)！</span>");
         
         document.getElementById('warning-msg').innerHTML = warnings.join("<br>");
     }
 
-    // 網頁開啟時先自動計算一次，讓預設值顯示出來
+    // 網頁開啟時自動計算一次
     window.onload = calculate;
 </script>
 

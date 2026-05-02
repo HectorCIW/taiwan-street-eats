@@ -57,7 +57,6 @@
         
         <div class="cost-group">
             <label>🥩 食材採購費：</label>
-            <!-- 預設已更新為 604.54 (含追加的 47.65) -->
             <input type="number" id="cost-ingredients" value="604.54" min="0" step="0.01" oninput="calculate()">
         </div>
         
@@ -90,7 +89,8 @@
     <div class="sales-section">
         <div class="input-group">
             <label>👑 Combo 綜合三拼 ($15) 售出數量：</label>
-            <span class="hint">(每份含: 薯條60g, 豬血糕5塊, 花枝丸2顆)</span>
+            <!-- 已經幫您把這裡的提示文字更新為 74g -->
+            <span class="hint">(每份含: 薯條74g, 豬血糕5塊, 花枝丸2顆)</span>
             <input type="number" id="combo" value="0" min="0" oninput="calculate()">
         </div>
 
@@ -129,9 +129,12 @@
 </div>
 
 <script>
-    const STOCK_FRIES_G = Math.round(6.5 * 4 * 453.592); 
-    const STOCK_CUTTLEFISH_PCS = 30 * 11; 
-    const STOCK_PIGBLOOD_PCS = 25 * 32; 
+    const STOCK_FRIES_G = Math.round(6.5 * 4 * 453.592); // 11793 克
+    const STOCK_CUTTLEFISH_PCS = 30 * 11; // 330 顆
+    const STOCK_PIGBLOOD_PCS = 25 * 32; // 800 塊
+    
+    // 全新的 Combo 薯條克數設定！
+    const COMBO_FRIES_G = 74; 
 
     function calculate() {
         let costVenue = Number(document.getElementById('cost-venue').value) || 0;
@@ -144,7 +147,8 @@
         document.getElementById('total-cost-sum').innerText = totalCost.toFixed(2);
         document.getElementById('display-total-cost').innerText = totalCost.toFixed(2);
 
-        let maxFriesCombo = Math.floor(STOCK_FRIES_G / 60);
+        // Combo 最大產量現在會根據 74g 來計算了
+        let maxFriesCombo = Math.floor(STOCK_FRIES_G / COMBO_FRIES_G);
         let maxCuttlefishCombo = Math.floor(STOCK_CUTTLEFISH_PCS / 2);
         let maxPigbloodCombo = Math.floor(STOCK_PIGBLOOD_PCS / 5);
         let maxCombosPossible = Math.min(maxFriesCombo, maxCuttlefishCombo, maxPigbloodCombo);
@@ -174,7 +178,8 @@
             profitDisplay.classList.remove('positive');
         }
 
-        let used_fries = (fries * 150) + (combo * 60);
+        // Combo 每賣出一份，現在是扣 74g
+        let used_fries = (fries * 150) + (combo * COMBO_FRIES_G);
         let used_cuttlefish = (cuttlefish * 4) + (combo * 2);
         let used_pigblood = (pigblood * 8) + (combo * 5);
 
